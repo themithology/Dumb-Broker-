@@ -1,0 +1,14 @@
+{
+  "name": "dumb-broker",
+  "version": "1.0.0",
+  "description": "A dumb fetch pipe: fetches a URL it is told to fetch and returns the raw result. Nothing else.",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
