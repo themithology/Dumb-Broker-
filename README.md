@@ -5,15 +5,22 @@ told to fetch, and return the raw result. It does not know anything about the
 caller's business, does not parse or interpret what it fetches, and has no
 opinion about the content.
 
-- One file (`server.js`), zero dependencies, no build step, no database.
-- Starts with `npm start` on any Node.js >= 18.
+Built as a **TanStack Start** app (TypeScript) so it deploys directly on
+**Lovable** — the service endpoints are server routes in `src/routes/`, the
+stack Lovable generates and hosts.
+
+## Stack
+
+- TanStack Start (TypeScript, React shell page) — Lovable's project shape
+- `POST /fetch` and `GET /health` are plain server routes (Request → Response)
+- No database, no build-time secrets, no extra services
 
 ## Environment
 
 | Var         | Required | Description                                              |
 | ----------- | -------- | -------------------------------------------------------- |
-| `FETCH_KEY` | yes      | Shared secret. The service refuses to start if unset.     |
-| `PORT`      | no       | Listen port (default `3000`). Always binds `0.0.0.0`.     |
+| `FETCH_KEY` | yes      | Shared secret. `npm start` refuses to run if unset.       |
+| `PORT`      | no       | Listen port (default `3000`). Binds `0.0.0.0`.            |
 
 ## Endpoints
 
@@ -82,7 +89,7 @@ Request-level rejections (not envelopes):
 - `400 { "error": "blocked" }` — SSRF guard: the URL is not http/https, or the
   host resolves to a private, loopback, link-local, or metadata address
   (`10/8`, `172.16/12`, `192.168/16`, `127/8`, `169.254/16`, `::1`, `fc00::/7`,
-  `0.0.0.0`, …). Checked before every outbound connection, including each
+  `0.0.0.0`, …). Checked before every outbound request, including each
   redirect hop.
 - `400 { "error": "bad_request" }` / `400 { "error": "invalid_json" }` —
   malformed input.
@@ -99,15 +106,21 @@ Behavior notes:
 
 ### `GET /health`
 
-`200 { "ok": true }` — no auth, no other data.
+`200 { "ok": true }` — no auth, no other data. Everything else is
+`404 { "error": "not_found" }`.
 
-## Run
+## Run locally
 
 ```bash
 export FETCH_KEY="the-key-shown-when-this-service-was-generated"
 export PORT=3000           # the host usually sets this
-npm start
+npm install
+npm start                  # builds and serves on 0.0.0.0:$PORT
 ```
+
+`npm run dev` runs the TanStack Start dev server (port 3000). `npm run typecheck`
+checks types. `npx tsx scripts/test-pipe.ts` runs the offline test harness
+(mocked network: redirect-hop SSRF, size cap, redirect semantics, headers).
 
 ## Acceptance test
 
@@ -130,9 +143,15 @@ curl -sS -X POST "$MIDDLEMAN_URL/fetch" \
 
 Expected: JSON containing `"status": 0` and an `error` field.
 
-## Deploying (Lovable or any small instance)
+## Deploying on Lovable
 
-- Build/runtime: plain Node.js, no build step. Start command: `npm start`.
-- Set `FETCH_KEY` (40+ random chars) and `PORT` in the host's environment
-  settings. The service binds `0.0.0.0:$PORT` so the host can route to it.
-- Nothing else to configure: no database, no queue, no rate limiter.
+This repo is a TanStack Start project in Lovable's shape (`src/routes/`,
+`vite.config.ts`, `package.json`):
+
+1. Connect the GitHub repo in Lovable (Git settings) or import the project.
+2. Set `FETCH_KEY` in Lovable's environment/secrets settings.
+3. Publish. The endpoints live at `https://<your-app>.lovable.app/fetch` and
+   `/health`; the service runs in the app's SSR server routes.
+
+Self-hosting (any small Node instance) works too: `npm start`, or build with a
+Nitro preset (`NITRO_PRESET=node-server npm run build` → `npm run serve`).
